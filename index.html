@@ -3,206 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to My Universe</title>
+    <title>Explore the Spectrum</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .ui-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
-            text-align: center;
-            color: white;
-            pointer-events: none; /* Allows clicks to pass through to the canvas */
-            mix-blend-mode: difference; /* Makes text readable over any color */
-        }
-        h1 {
-            font-size: 3.5rem;
-            font-weight: 300;
-            letter-spacing: 0.5rem;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-        }
-        p {
-            font-size: 1.2rem;
-            letter-spacing: 0.1rem;
-            opacity: 0.8;
-        }
-        /* Visual cue for destinations */
-        .legend {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2;
-            display: flex;
-            gap: 20px;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 10px 20px;
-            border-radius: 30px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .legend-item {
-            color: #fff;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .color-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.5);
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Roboto, sans-serif; }
+        canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 1; cursor: crosshair; }
+        .ui-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; text-align: center; color: white; pointer-events: none; mix-blend-mode: difference; }
+        h1 { font-size: 3.5rem; font-weight: 300; letter-spacing: 0.5rem; text-transform: uppercase; margin-bottom: 1rem; }
+        p { font-size: 1.2rem; letter-spacing: 0.1rem; opacity: 0.8; }
+        .legend { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; gap: 20px; background: rgba(0, 0, 0, 0.4); padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .legend-item { color: #fff; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); }
     </style>
 </head>
 <body>
 
     <div class="ui-container">
         <h1>Explore</h1>
-        <p>Click anywhere on the flowing colors to navigate</p>
+        <p>Click anywhere on the heat map to navigate</p>
     </div>
 
     <div class="legend">
-        <div class="legend-item"><span class="color-dot" style="background: #ff0055;"></span> Portfolio (Magenta)</div>
-        <div class="legend-item"><span class="color-dot" style="background: #00ffcc;"></span> About Me (Cyan)</div>
-        <div class="legend-item"><span class="color-dot" style="background: #9900ff;"></span> Blog (Purple)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #e8117f;"></span> Portfolio (Pink)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #11e8df;"></span> About Me (Cyan)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #9011e8;"></span> Blog (Purple)</div>
     </div>
 
     <canvas id="flowCanvas"></canvas>
 
+    <script id="vs" type="x-shader/x-vertex">
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform float u_time;
+        uniform vec2 u_resolution;
+
+        // Custom palette function (defines the colors in the gradient)
+        // Adjust these coefficients to change the specific colors and transition speeds
+        vec3 palette( float t ) {
+            vec3 a = vec3(0.5, 0.5, 0.5);
+            vec3 b = vec3(0.5, 0.5, 0.5);
+            vec3 c = vec3(1.0, 1.0, 1.0);
+            vec3 d = vec3(0.3, 0.20, 0.25); // Purple-ish base
+            // For closer heat-map effect (Red-Yellow-Green):
+            // vec3 d = vec3(0.0, 0.10, 0.20); 
+
+            return a + b * cos( 6.28318 * (c * t + d) );
+        }
+
+        void main() {
+            // Normalize coordinates (0 to 1)
+            vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
+            vec2 uv0 = uv;
+            vec3 finalColor = vec3(0.0);
+
+            // Slower time factor
+            float t = u_time * 0.1; 
+
+            // Create multi-layered interference/wave patterns
+            for (float i = 0.0; i < 3.0; i++) {
+                // Wave function (sine interference field)
+                uv = fract(uv * 1.8) - 0.5;
+
+                float d = length(uv) * exp(-length(uv0));
+
+                vec3 col = palette(length(uv0) + i*0.4 + t);
+
+                d = sin(d * 8.0 + t)/8.0;
+                d = abs(d);
+
+                // Pow controls the smoothness vs. sharp lines (heat density)
+                d = pow(0.015 / d, 1.3);
+
+                finalColor += col * d;
+            }
+
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    </script>
+
     <script>
         const canvas = document.getElementById('flowCanvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
 
-        // --- CONFIGURATION: YOUR PAGES & THEME COLORS ---
-        // Edit the hex values and URLs to match your GitHub pages layout
+        if (!gl) { alert("WebGL not supported."); }
+
+        // Setup the target destinations and target RGB colors for matching
         const destinations = [
-            { name: "Portfolio", color: { r: 255, g: 0, b: 85 }, url: "portfolio.html" },
-            { name: "About Me",  color: { r: 0, g: 255, b: 204 }, url: "about.html" },
-            { name: "Blog",      color: { r: 153, g: 0, b: 255 }, url: "blog.html" }
+            { name: "Portfolio", color: { r: 232, g: 17, b: 127 }, url: "portfolio.html" },
+            { name: "About Me",  color: { r: 17, g: 232, b: 223 }, url: "about.html" },
+            { name: "Blog",      color: { r: 144, g: 17, b: 232 }, url: "blog.html" }
         ];
 
-        let width = canvas.width = window.innerWidth;
-        let height = canvas.height = window.innerHeight;
+        // 1. Initialize Shaders
+        const vsSource = document.getElementById('vs').text;
+        const fsSource = document.getElementById('fs').text;
 
-        window.addEventListener('resize', () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        });
-
-        // --- DYNAMIC FLOW SIMULATION (Perlin-like Noise Flow Field) ---
-        let count = 0;
-        const particleCount = 120;
-        const particles = [];
-
-        class Particle {
-            constructor() {
-                this.reset();
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.size = Math.random() * 150 + 50; // Large, bleeding blobs
-                this.baseHue = Math.random() * 360;
-                this.hueShift = Math.random() * 100;
-                this.vx = Math.random() * 1 - 0.5;
-                this.vy = Math.random() * 1 - 0.5;
-            }
-            update() {
-                // Vector field logic driven by trigonometry over time
-                this.vx += Math.sin(this.y * 0.005 + count * 0.01) * 0.1;
-                this.vy += Math.cos(this.x * 0.005 + count * 0.01) * 0.1;
-                
-                this.x += this.vx;
-                this.y += this.vy;
-                
-                // Friction
-                this.vx *= 0.98;
-                this.vy *= 0.98;
-
-                // Canvas boundaries reset
-                if (this.x < -this.size || this.x > width + this.size || this.y < -this.size || this.y > height + this.size) {
-                    this.reset();
-                }
-            }
-            draw() {
-                let currentHue = (this.baseHue + count * 0.2) % 360;
-                let gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-                
-                // Smoothly bleeding color shapes
-                gradient.addColorStop(0, `hsla(${currentHue}, 90%, 55%, 0.15)`);
-                gradient.addColorStop(0.5, `hsla(${(currentHue + this.hueShift) % 360}, 85%, 45%, 0.05)`);
-                gradient.addColorStop(1, 'rgba(0,0,0,0)');
-                
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return shader;
         }
 
-        // Initialize particles
-        for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        // 2. Define the plane (full screen quad)
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1.0, -1.0,   1.0, -1.0,  -1.0,  1.0,
+            -1.0,  1.0,   1.0, -1.0,   1.0,  1.0,
+        ]), gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // 3. Get Uniform Locations
+        const timeLocation = gl.getUniformLocation(program, "u_time");
+        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
         }
+        window.addEventListener('resize', resize);
+        resize();
 
-        // Animation Loop
-        function animate() {
-            // Slight opacity trail creates the flowing, bleeding effect
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-            ctx.fillRect(0, 0, width, height);
-
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-
-            count++;
-            requestAnimationFrame(animate);
+        // 4. Animation Loop
+        function render(time) {
+            // Slower time progression
+            gl.uniform1f(timeLocation, time * 0.001); 
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
         }
-        animate();
+        requestAnimationFrame(render);
 
-        // --- NAVIGATION LOGIC VIA COLOR MATCHING ---
+        // 5. Navigation Logic
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            // WebGL coordinates are inverted Y
+            const clickY = rect.height - (e.clientY - rect.top); 
 
-            // Extract the RGBA values of the single clicked pixel
-            const pixelData = ctx.getImageData(clickX, clickY, 1, 1).data;
+            // IMPORTANT: preserveDrawingBuffer must be TRUE for this to work
+            const pixelData = new Uint8Array(4);
+            gl.readPixels(clickX, clickY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
+            
             const clickedColor = { r: pixelData[0], g: pixelData[1], b: pixelData[2] };
+            console.log("Clicked:", clickedColor);
 
-            // If user clicks pure black background area, don't navigate or default safely
-            if(clickedColor.r === 0 && clickedColor.g === 0 && clickedColor.b === 0) {
-                return; 
-            }
+            if(clickedColor.r < 10 && clickedColor.g < 10 && clickedColor.b < 10) return; // Ignore dark background clicks
 
-            // Find nearest destination color using 3D Color Distance Formula: 
-            // d = sqrt((r2 - r1)^2 + (g2 - g1)^2 + (b2 - b1)^2)
+            // Find nearest destination (Color Distance Formula)
             let closestPage = null;
             let minDistance = Infinity;
 
@@ -212,23 +180,18 @@
                     Math.pow(clickedColor.g - dest.color.g, 2) +
                     Math.pow(clickedColor.b - dest.color.b, 2)
                 );
-
                 if (distance < minDistance) {
                     minDistance = distance;
                     closestPage = dest;
                 }
             });
 
-            if (closestPage) {
-                // Flash overlay effect just to signify selection before redirecting
-                ctx.fillStyle = `rgba(${closestPage.color.r}, ${closestPage.color.g}, ${closestPage.color.b}, 0.4)`;
-                ctx.fillRect(0, 0, width, height);
-                
-                setTimeout(() => {
-                    window.location.href = closestPage.url;
-                }, 300);
+            if (closestPage && minDistance < 150) { // Add a threshold to ignore poor matches
+                window.location.href = closestPage.url;
             }
         });
+
     </script>
 </body>
+</html>
 </html>
