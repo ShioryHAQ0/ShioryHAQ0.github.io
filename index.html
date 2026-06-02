@@ -20,13 +20,13 @@
 
     <div class="ui-container">
         <h1>Explore</h1>
-        <p>Click anywhere on the heat map to navigate</p>
+        <p>Click on a color to navigate</p>
     </div>
 
     <div class="legend">
-        <div class="legend-item"><span class="color-dot" style="background: #e8117f;"></span> Portfolio (Pink)</div>
-        <div class="legend-item"><span class="color-dot" style="background: #11e8df;"></span> About Me (Cyan)</div>
-        <div class="legend-item"><span class="color-dot" style="background: #9011e8;"></span> Blog (Purple)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #ff0055;"></span> Portfolio (Pink)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #00ffcc;"></span> About Me (Cyan)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #9900ff;"></span> Blog (Purple)</div>
     </div>
 
     <canvas id="flowCanvas"></canvas>
@@ -40,47 +40,32 @@
 
     <script id="fs" type="x-shader/x-fragment">
         precision mediump float;
-        uniform float u_time;
         uniform vec2 u_resolution;
-
-        // Custom palette function (defines the colors in the gradient)
-        // Adjust these coefficients to change the specific colors and transition speeds
-        vec3 palette( float t ) {
-            vec3 a = vec3(0.5, 0.5, 0.5);
-            vec3 b = vec3(0.5, 0.5, 0.5);
-            vec3 c = vec3(1.0, 1.0, 1.0);
-            vec3 d = vec3(0.3, 0.20, 0.25); // Purple-ish base
-            // For closer heat-map effect (Red-Yellow-Green):
-            // vec3 d = vec3(0.0, 0.10, 0.20); 
-
-            return a + b * cos( 6.28318 * (c * t + d) );
-        }
+        
+        // Arrays passed from JS containing information for 12 distinct color bulbs
+        uniform vec2 u_centers[12];
+        uniform vec3 u_colors[12];
+        uniform float u_sizes[12];
 
         void main() {
-            // Normalize coordinates (0 to 1)
-            vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / u_resolution.y;
-            vec2 uv0 = uv;
+            vec2 st = gl_FragCoord.xy;
             vec3 finalColor = vec3(0.0);
+            float totalWeight = 0.0;
 
-            // Slower time factor
-            float t = u_time * 0.1; 
+            // Calculate the heatmap influence of each individual bulb
+            for (int i = 0; i < 12; i++) {
+                float dist = distance(st, u_centers[i]);
+                
+                // Smooth dropoff formula resembling a heat map gradient
+                float influence = pow(u_sizes[i] / max(dist, 1.0), 2.0);
+                
+                finalColor += u_colors[i] * influence;
+                totalWeight += influence;
+            }
 
-            // Create multi-layered interference/wave patterns
-            for (float i = 0.0; i < 3.0; i++) {
-                // Wave function (sine interference field)
-                uv = fract(uv * 1.8) - 0.5;
-
-                float d = length(uv) * exp(-length(uv0));
-
-                vec3 col = palette(length(uv0) + i*0.4 + t);
-
-                d = sin(d * 8.0 + t)/8.0;
-                d = abs(d);
-
-                // Pow controls the smoothness vs. sharp lines (heat density)
-                d = pow(0.015 / d, 1.3);
-
-                finalColor += col * d;
+            // Normalizes and prevents extreme over-exposure where bulbs overlap
+            if (totalWeight > 1.0) {
+                finalColor /= totalWeight * 0.8; 
             }
 
             gl_FragColor = vec4(finalColor, 1.0);
@@ -93,14 +78,14 @@
 
         if (!gl) { alert("WebGL not supported."); }
 
-        // Setup the target destinations and target RGB colors for matching
+        // --- NAVIGATION TARGETS ---
         const destinations = [
-            { name: "Portfolio", color: { r: 232, g: 17, b: 127 }, url: "portfolio.html" },
-            { name: "About Me",  color: { r: 17, g: 232, b: 223 }, url: "about.html" },
-            { name: "Blog",      color: { r: 144, g: 17, b: 232 }, url: "blog.html" }
+            { name: "Portfolio", color: { r: 255, g: 0, b: 85 }, url: "portfolio.html" },
+            { name: "About Me",  color: { r: 0, g: 255, b: 204 }, url: "about.html" },
+            { name: "Blog",      color: { r: 153, g: 0, b: 255 }, url: "blog.html" }
         ];
 
-        // 1. Initialize Shaders
+        // Shader Setup
         const vsSource = document.getElementById('vs').text;
         const fsSource = document.getElementById('fs').text;
 
@@ -111,66 +96,100 @@
             return shader;
         }
 
-        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
         const program = gl.createProgram();
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
         gl.linkProgram(program);
         gl.useProgram(program);
 
-        // 2. Define the plane (full screen quad)
+        // Quad setup
         const buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1.0, -1.0,   1.0, -1.0,  -1.0,  1.0,
-            -1.0,  1.0,   1.0, -1.0,   1.0,  1.0,
-        ]), gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+        const posLoc = gl.getAttribLocation(program, "position");
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-        const positionLocation = gl.getAttribLocation(program, "position");
-        gl.enableVertexAttribArray(positionLocation);
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        // Get uniform locations
+        const resLoc = gl.getUniformLocation(program, "u_resolution");
+        const centersLoc = gl.getUniformLocation(program, "u_centers");
+        const colorsLoc = gl.getUniformLocation(program, "u_colors");
+        const sizesLoc = gl.getUniformLocation(program, "u_sizes");
 
-        // 3. Get Uniform Locations
-        const timeLocation = gl.getUniformLocation(program, "u_time");
-        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-
+        let width, height;
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            gl.viewport(0, 0, width, height);
+            gl.uniform2f(resLoc, width, height);
         }
         window.addEventListener('resize', resize);
         resize();
 
-        // 4. Animation Loop
-        function render(time) {
-            // Slower time progression
-            gl.uniform1f(timeLocation, time * 0.001); 
+        // --- JAVASCRIPT BULB LOGIC (Controls tracking & slow movement) ---
+        const bulbs = [];
+        const baseColors = [
+            [1.0, 0.0, 0.33], // Pink/Red
+            [0.0, 1.0, 0.8],  // Cyan
+            [0.6, 0.0, 1.0]   // Purple
+        ];
+
+        // Instantiate 12 independent, slowly drifting color points
+        for (let i = 0; i < 12; i++) {
+            bulbs.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.8, // Very slow movement speed
+                vy: (Math.random() - 0.5) * 0.8,
+                size: Math.random() * 100 + 120, // Distinct size radius
+                color: baseColors[i % baseColors.length] // Alternate target colors
+            });
+        }
+
+        // Animation Loop
+        function render() {
+            const centersArray = [];
+            const colorsArray = [];
+            const sizesArray = [];
+
+            bulbs.forEach(b => {
+                // Smooth continuous drift
+                b.x += b.vx;
+                b.y += b.vy;
+
+                // Bounce gently off the boundaries
+                if (b.x < 0 || b.x > width) b.vx *= -1;
+                if (b.y < 0 || b.y > height) b.vy *= -1;
+
+                centersArray.push(b.x, b.y);
+                colorsArray.push(b.color[0], b.color[1], b.color[2]);
+                sizesArray.push(b.size);
+            });
+
+            // Pass the moving arrays to the WebGL fragment shader
+            gl.uniform2fv(centersLoc, new Float32Array(centersArray));
+            gl.uniform3fv(colorsLoc, new Float32Array(colorsArray));
+            gl.uniform1fv(sizesLoc, new Float32Array(sizesArray));
+
             gl.drawArrays(gl.TRIANGLES, 0, 6);
             requestAnimationFrame(render);
         }
         requestAnimationFrame(render);
 
-        // 5. Navigation Logic
+        // --- NAVIGATION CLICK HANDLER ---
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
-            // WebGL coordinates are inverted Y
-            const clickY = rect.height - (e.clientY - rect.top); 
+            const clickY = rect.height - (e.clientY - rect.top); // Flip Y for WebGL
 
-            // IMPORTANT: preserveDrawingBuffer must be TRUE for this to work
             const pixelData = new Uint8Array(4);
             gl.readPixels(clickX, clickY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelData);
             
             const clickedColor = { r: pixelData[0], g: pixelData[1], b: pixelData[2] };
-            console.log("Clicked:", clickedColor);
 
-            if(clickedColor.r < 10 && clickedColor.g < 10 && clickedColor.b < 10) return; // Ignore dark background clicks
+            // Ignore pure background clicks
+            if(clickedColor.r < 15 && clickedColor.g < 15 && clickedColor.b < 15) return;
 
-            // Find nearest destination (Color Distance Formula)
             let closestPage = null;
             let minDistance = Infinity;
 
@@ -186,12 +205,10 @@
                 }
             });
 
-            if (closestPage && minDistance < 150) { // Add a threshold to ignore poor matches
+            if (closestPage) {
                 window.location.href = closestPage.url;
             }
         });
-
     </script>
 </body>
-</html>
 </html>
