@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Me | The Eye</title>
+    <title>About Me | Collage Eye</title>
     <style>
         :root {
-            --bg-color: #050508;
-            --neon-pink: #ff007f;
-            --neon-cyan: #00f3ff;
-            --neon-green: #39ff14;
-            --neon-purple: #9d00ff;
+            --bg-color: #030305;
+            --neon-glow: #00f3ff;
         }
 
         * {
@@ -21,6 +18,7 @@
 
         body {
             background-color: var(--bg-color);
+            background-image: radial-gradient(circle at center, #11111a 0%, #030305 70%);
             font-family: 'Courier New', Courier, monospace;
             min-height: 100vh;
             display: flex;
@@ -30,106 +28,24 @@
             color: #fff;
         }
 
-        /* Container keeping everything aligned */
-        .eye-container {
+        /* Container keeping the layers aligned */
+        .eye-assemblage {
             position: relative;
-            width: 500px;
-            height: 500px;
+            width: 550px;
+            height: 550px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* --- THE EYE ARTWORK --- */
-        .eye-outer {
-            position: relative;
-            width: 320px;
-            height: 320px;
-            border-radius: 50%;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 
-                0 0 40px rgba(0, 243, 255, 0.2),
-                inset 0 0 50px rgba(255, 0, 127, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            z-index: 2;
-        }
-
-        /* Fluorescent, colorful iris */
-        .iris {
-            position: relative;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            /* Multilayered fluorescent gradient mesh */
-            background: radial-gradient(circle at center, 
-                #000 20%, 
-                var(--neon-purple) 35%, 
-                var(--neon-pink) 55%, 
-                var(--neon-cyan) 75%, 
-                var(--neon-green) 100%
-            );
-            box-shadow: 
-                0 0 60px var(--neon-pink),
-                0 0 30px var(--neon-cyan),
-                inset 0 0 30px #000;
-            transition: transform 0.1s ease-out;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        /* Iris Texture Striations */
-        .iris::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: repeating-conic-gradient(
-                from 0deg,
-                transparent 0deg 2deg,
-                rgba(255, 255, 255, 0.15) 3deg 4deg,
-                transparent 5deg 8deg
-            );
-            animation: rotateIris 20s linear infinite;
-        }
-
-        /* Pupil */
-        .pupil {
-            position: relative;
-            width: 75px;
-            height: 75px;
-            background: #000;
-            border-radius: 50%;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-            z-index: 3;
-        }
-
-        /* Eye Glare/Reflection */
-        .glare {
-            position: absolute;
-            top: 25%;
-            left: 25%;
-            width: 25px;
-            height: 15px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: rotate(-30deg);
-            filter: blur(1px);
-            z-index: 4;
-        }
-
-        /* --- CLIMBING/CIRCULAR TEXT --- */
+        /* --- LAYER 1: CLIMBING TEXT RUNNING BEHIND/AROUND --- */
         .text-ring {
             position: absolute;
             width: 100%;
             height: 100%;
-            z-index: 5;
+            z-index: 1;
             pointer-events: none;
-            animation: spinText 25s linear infinite;
+            animation: spinText 40s linear infinite;
         }
 
         .text-ring svg {
@@ -138,113 +54,144 @@
         }
 
         .text-ring text {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: bold;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
             fill: #ffffff;
-            text-shadow: 
-                0 0 5px var(--neon-cyan),
-                0 0 10px var(--neon-cyan);
+            opacity: 0.8;
+            text-shadow: 0 0 8px var(--neon-glow);
             text-transform: uppercase;
         }
 
-        /* --- ANIMATIONS --- */
-        @keyframes rotateIris {
-            100% { transform: rotate(360deg); }
+        /* --- LAYER 2: THE STATIONARY EYE FRAME --- */
+        .eye-frame {
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            z-index: 3; /* Placed in front of the iris to clip/frame it naturally */
+            pointer-events: none; /* Allows mouse tracking to pass through it */
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.9));
         }
 
+        .eye-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- LAYER 3: THE TRACKING NEON IRIS --- */
+        .iris-box {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            z-index: 2; /* Sits behind the frame so its borders stay hidden */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .iris-box img {
+            width: 105%;
+            height: 105%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 15px #ff007f);
+            animation: pulseGlow 4s ease-in-out infinite alternate;
+        }
+
+        /* --- ANIMATIONS --- */
         @keyframes spinText {
             100% { transform: rotate(360deg); }
         }
 
-        /* --- CONTENT/UI OVERLAYS --- */
-        .info-panel {
+        @keyframes pulseGlow {
+            0% { filter: drop-shadow(0 0 10px #ff007f) brightness(1); }
+            100% { filter: drop-shadow(0 0 25px #00f3ff) brightness(1.2); }
+        }
+
+        /* --- BIO DETAILS PANEL --- */
+        .bio-overlay {
             position: absolute;
-            bottom: -80px;
+            bottom: -50px;
             text-align: center;
             width: 100%;
-            font-family: sans-serif;
         }
 
-        .info-panel h1 {
-            font-size: 1.5rem;
-            letter-spacing: 4px;
+        .bio-overlay h1 {
+            font-size: 1.2rem;
+            letter-spacing: 6px;
             color: #fff;
-            text-shadow: 0 0 10px var(--neon-pink);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
-        .info-panel p {
-            font-size: 0.9rem;
-            color: #888;
-            letter-spacing: 2px;
+        .bio-overlay p {
+            font-size: 0.8rem;
+            color: #666;
+            letter-spacing: 3px;
         }
     </style>
 </head>
 <body>
 
-    <div class="eye-container">
+    <div class="eye-assemblage">
         
         <div class="text-ring">
-            <svg viewBox="0 0 500 500">
-                <path id="textPath" d="M 250,250 m -190,0 a 190,190 0 1,1 380,0 a 190,190 0 1,1 -380,0" fill="none" />
+            <svg viewBox="0 0 550 550">
+                <path id="archivePath" d="M 275,275 m -220,0 a 220,220 0 1,1 440,0 a 220,220 0 1,1 -440,0" fill="none" />
                 <text>
-                    <textPath href="#textPath" startOffset="0%">
-                        • CREATIVE DEVELOPER • DIGITAL MYSTIC • DESIGNER OF THE UNKNOWN • EXPLORING THE MATRIX • WELCOME TO MY VISION 
+                    <textPath href="#archivePath" startOffset="0%">
+                        • ARCHIVE ENTRY 0402 // THE OBSERVER IS THE OBSERVED • UNKNOWN REALMS AWAIT • DIGITAL MYSTIQUE • 
                     </textPath>
                 </text>
             </svg>
         </div>
 
-        <div class="eye-outer">
-            <div class="iris" id="iris">
-                <div class="pupil">
-                    <div class="glare"></div>
-                </div>
-            </div>
+        <div class="iris-box" id="movingIris">
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/9447978454826881050_0" alt="Fluorescent Iris">
         </div>
 
-        <div class="info-panel">
-            <h1>ABOUT ME</h1>
-            <p>LOOK CLOSER INTO THE DIGITAL VOID</p>
+        <div class="eye-frame">
+            <img src="http://googleusercontent.com/image_collection/image_retrieval/475129861398242301_0" alt="Surreal Eye Frame">
+        </div>
+
+        <div class="bio-overlay">
+            <h1>WELCOME TO THE CORE</h1>
+            <p>[ INDEPENDENT DESIGN & PROTOCOLS ]</p>
         </div>
 
     </div>
 
     <script>
-        const iris = document.getElementById('iris');
-        const container = document.querySelector('.eye-container');
+        const irisBox = document.getElementById('movingIris');
+        const container = document.querySelector('.eye-assemblage');
 
-        // Interactive "Look Around" effect tied to mouse movement
         document.addEventListener('mousemove', (e) => {
             const rect = container.getBoundingClientRect();
             
-            // Get center point of the eye
+            // Core coordinate of the assemblage center
             const eyeX = rect.left + rect.width / 2;
             const eyeY = rect.top + rect.height / 2;
             
-            // Distance between mouse and eye center
+            // Distance vectors from cursor
             const deltaX = e.clientX - eyeX;
             const deltaY = e.clientY - eyeY;
             
-            // Calculate angle
             const angle = Math.atan2(deltaY, deltaX);
             
-            // Cap the movement distance so the iris stays inside the socket
-            const maxDistance = 25; 
-            const distance = Math.min(maxDistance, Math.hypot(deltaX, deltaY) / 15);
+            // Constrain maximum track distance so it doesn't leave the eye socket asset
+            const maxTrack = 35; 
+            const pullForce = Math.min(maxTrack, Math.hypot(deltaX, deltaY) / 12);
             
-            // Calculate movement coordinates
-            const moveX = Math.cos(angle) * distance;
-            const moveY = Math.sin(angle) * distance;
+            const moveX = Math.cos(angle) * pullForce;
+            const moveY = Math.sin(angle) * pullForce;
             
-            // Apply the shift to the iris
-            iris.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            irisBox.style.transform = `translate(${moveX}px, ${moveY}px)`;
         });
 
-        // Reset eye position when mouse leaves the window
+        // Center smoothly when mouse departs
         document.addEventListener('mouseleave', () => {
-            iris.style.transform = 'translate(0px, 0px)';
+            irisBox.style.transform = 'translate(0px, 0px)';
         });
     </script>
 </body>
