@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Me | The Eye</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-green: #39ff14;
+            --neon-purple: #9d00ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        /* Container keeping everything aligned */
+        .eye-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- THE EYE ARTWORK --- */
+        .eye-outer {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                0 0 40px rgba(0, 243, 255, 0.2),
+                inset 0 0 50px rgba(255, 0, 127, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            z-index: 2;
+        }
+
+        /* Fluorescent, colorful iris */
+        .iris {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            /* Multilayered fluorescent gradient mesh */
+            background: radial-gradient(circle at center, 
+                #000 20%, 
+                var(--neon-purple) 35%, 
+                var(--neon-pink) 55%, 
+                var(--neon-cyan) 75%, 
+                var(--neon-green) 100%
+            );
+            box-shadow: 
+                0 0 60px var(--neon-pink),
+                0 0 30px var(--neon-cyan),
+                inset 0 0 30px #000;
+            transition: transform 0.1s ease-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Iris Texture Striations */
+        .iris::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: repeating-conic-gradient(
+                from 0deg,
+                transparent 0deg 2deg,
+                rgba(255, 255, 255, 0.15) 3deg 4deg,
+                transparent 5deg 8deg
+            );
+            animation: rotateIris 20s linear infinite;
+        }
+
+        /* Pupil */
+        .pupil {
+            position: relative;
+            width: 75px;
+            height: 75px;
+            background: #000;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            z-index: 3;
+        }
+
+        /* Eye Glare/Reflection */
+        .glare {
+            position: absolute;
+            top: 25%;
+            left: 25%;
+            width: 25px;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: rotate(-30deg);
+            filter: blur(1px);
+            z-index: 4;
+        }
+
+        /* --- CLIMBING/CIRCULAR TEXT --- */
+        .text-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+            animation: spinText 25s linear infinite;
+        }
+
+        .text-ring svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .text-ring text {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 6px;
+            fill: #ffffff;
+            text-shadow: 
+                0 0 5px var(--neon-cyan),
+                0 0 10px var(--neon-cyan);
+            text-transform: uppercase;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes rotateIris {
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spinText {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- CONTENT/UI OVERLAYS --- */
+        .info-panel {
+            position: absolute;
+            bottom: -80px;
+            text-align: center;
+            width: 100%;
+            font-family: sans-serif;
+        }
+
+        .info-panel h1 {
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-pink);
+            margin-bottom: 5px;
+        }
+
+        .info-panel p {
+            font-size: 0.9rem;
+            color: #888;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="eye-container">
+        
+        <div class="text-ring">
+            <svg viewBox="0 0 500 500">
+                <path id="textPath" d="M 250,250 m -190,0 a 190,190 0 1,1 380,0 a 190,190 0 1,1 -380,0" fill="none" />
+                <text>
+                    <textPath href="#textPath" startOffset="0%">
+                        • CREATIVE DEVELOPER • DIGITAL MYSTIC • DESIGNER OF THE UNKNOWN • EXPLORING THE MATRIX • WELCOME TO MY VISION 
+                    </textPath>
+                </text>
+            </svg>
+        </div>
+
+        <div class="eye-outer">
+            <div class="iris" id="iris">
+                <div class="pupil">
+                    <div class="glare"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h1>ABOUT ME</h1>
+            <p>LOOK CLOSER INTO THE DIGITAL VOID</p>
+        </div>
+
+    </div>
+
+    <script>
+        const iris = document.getElementById('iris');
+        const container = document.querySelector('.eye-container');
+
+        // Interactive "Look Around" effect tied to mouse movement
+        document.addEventListener('mousemove', (e) => {
+            const rect = container.getBoundingClientRect();
+            
+            // Get center point of the eye
+            const eyeX = rect.left + rect.width / 2;
+            const eyeY = rect.top + rect.height / 2;
+            
+            // Distance between mouse and eye center
+            const deltaX = e.clientX - eyeX;
+            const deltaY = e.clientY - eyeY;
+            
+            // Calculate angle
+            const angle = Math.atan2(deltaY, deltaX);
+            
+            // Cap the movement distance so the iris stays inside the socket
+            const maxDistance = 25; 
+            const distance = Math.min(maxDistance, Math.hypot(deltaX, deltaY) / 15);
+            
+            // Calculate movement coordinates
+            const moveX = Math.cos(angle) * distance;
+            const moveY = Math.sin(angle) * distance;
+            
+            // Apply the shift to the iris
+            iris.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        });
+
+        // Reset eye position when mouse leaves the window
+        document.addEventListener('mouseleave', () => {
+            iris.style.transform = 'translate(0px, 0px)';
+        });
+    </script>
+</body>
+</html>
