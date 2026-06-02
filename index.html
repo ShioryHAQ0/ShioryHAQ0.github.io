@@ -1,1 +1,234 @@
-</p>Bonjour tout le monde</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to My Universe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .ui-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            text-align: center;
+            color: white;
+            pointer-events: none; /* Allows clicks to pass through to the canvas */
+            mix-blend-mode: difference; /* Makes text readable over any color */
+        }
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 300;
+            letter-spacing: 0.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        p {
+            font-size: 1.2rem;
+            letter-spacing: 0.1rem;
+            opacity: 0.8;
+        }
+        /* Visual cue for destinations */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            display: flex;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .legend-item {
+            color: #fff;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-container">
+        <h1>Explore</h1>
+        <p>Click anywhere on the flowing colors to navigate</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><span class="color-dot" style="background: #ff0055;"></span> Portfolio (Pink/Red)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #00ffcc;"></span> About Me (Cyan)</div>
+        <div class="legend-item"><span class="color-dot" style="background: #9900ff;"></span> Blog (Purple)</div>
+    </div>
+
+    <canvas id="flowCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('flowCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // --- CONFIGURATION: YOUR PAGES & THEME COLORS ---
+        // Edit the hex values and URLs to match your GitHub pages layout
+        const destinations = [
+            { name: "Portfolio", color: { r: 255, g: 0, b: 85 }, url: "portfolio.html" },
+            { name: "About Me",  color: { r: 0, g: 255, b: 204 }, url: "about.html" },
+            { name: "Blog",      color: { r: 153, g: 0, b: 255 }, url: "blog.html" }
+        ];
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // --- DYNAMIC FLOW SIMULATION (Perlin-like Noise Flow Field) ---
+        let count = 0;
+        const particleCount = 120;
+        const particles = [];
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 150 + 50; // Large, bleeding blobs
+                this.baseHue = Math.random() * 360;
+                this.hueShift = Math.random() * 100;
+                this.vx = Math.random() * 1 - 0.5;
+                this.vy = Math.random() * 1 - 0.5;
+            }
+            update() {
+                // Vector field logic driven by trigonometry over time
+                this.vx += Math.sin(this.y * 0.005 + count * 0.01) * 0.1;
+                this.vy += Math.cos(this.x * 0.005 + count * 0.01) * 0.1;
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Friction
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                // Canvas boundaries reset
+                if (this.x < -this.size || this.x > width + this.size || this.y < -this.size || this.y > height + this.size) {
+                    this.reset();
+                }
+            }
+            draw() {
+                let currentHue = (this.baseHue + count * 0.2) % 360;
+                let gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                
+                // Smoothly bleeding color shapes
+                gradient.addColorStop(0, `hsla(${currentHue}, 90%, 55%, 0.15)`);
+                gradient.addColorStop(0.5, `hsla(${(currentHue + this.hueShift) % 360}, 85%, 45%, 0.05)`);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Initialize particles
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        // Animation Loop
+        function animate() {
+            // Slight opacity trail creates the flowing, bleeding effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            count++;
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- NAVIGATION LOGIC VIA COLOR MATCHING ---
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Extract the RGBA values of the single clicked pixel
+            const pixelData = ctx.getImageData(clickX, clickY, 1, 1).data;
+            const clickedColor = { r: pixelData[0], g: pixelData[1], b: pixelData[2] };
+
+            // If user clicks pure black background area, don't navigate or default safely
+            if(clickedColor.r === 0 && clickedColor.g === 0 && clickedColor.b === 0) {
+                return; 
+            }
+
+            // Find nearest destination color using 3D Color Distance Formula: 
+            // d = sqrt((r2 - r1)^2 + (g2 - g1)^2 + (b2 - b1)^2)
+            let closestPage = null;
+            let minDistance = Infinity;
+
+            destinations.forEach(dest => {
+                let distance = Math.sqrt(
+                    Math.pow(clickedColor.r - dest.color.r, 2) +
+                    Math.pow(clickedColor.g - dest.color.g, 2) +
+                    Math.pow(clickedColor.b - dest.color.b, 2)
+                );
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestPage = dest;
+                }
+            });
+
+            if (closestPage) {
+                // Flash overlay effect just to signify selection before redirecting
+                ctx.fillStyle = `rgba(${closestPage.color.r}, ${closestPage.color.g}, ${closestPage.color.b}, 0.4)`;
+                ctx.fillRect(0, 0, width, height);
+                
+                setTimeout(() => {
+                    window.location.href = closestPage.url;
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>
